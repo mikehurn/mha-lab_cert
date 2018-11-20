@@ -1,0 +1,29 @@
+[ req ]
+default_bits            = 2048
+default_md              = sha256
+distinguished_name      = req_distinguished_name
+prompt = no
+<% if @alt_names_real.count > 1 -%>
+req_extensions = v3_req # The extensions to add to a certificate request
+<% end -%>
+
+[ req_distinguished_name ]
+C=<%= @country %>
+ST=<%= @state %>
+L=<%= @city %>
+emailAddress=<%= @caemail %>
+O=<%= @org %>
+OU=<%= @org_unit %>
+CN=<%= @name %>
+
+[ v3_req ]
+basicConstraints = CA:FALSE
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+subjectAltName = @alt_names
+
+[ alt_names ]
+<% idx=0 -%>
+<% @alt_names_real.each do |alt| -%>
+DNS.<%= idx %> = <%= alt %>
+<% idx+=1 -%>
+<% end -%>

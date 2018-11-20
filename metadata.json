@@ -1,0 +1,48 @@
+{
+  "name": "mha-lab_cert",
+  "version": "0.1.0",
+  "author": "Michael Hurn",
+  "summary": "The mha-lab_cert module is the companion module to mha-lab_ca.",
+  "license": "Apache-2.0",
+  "source": "https://github.com/mikehurn/mha-lab_cert",
+  "project_page": "https://github.com/mikehurn/mha-lab_cert",
+  "issues_url": "https://github.com/mikehurn/mha-lab_cert/issues",
+  "dependencies": [
+
+  ],
+  "operatingsystem_support": [
+    {
+      "operatingsystem": "CentOS",
+      "operatingsystemrelease": [
+        "7"
+      ]
+    },
+    {
+      "operatingsystem": "OracleLinux",
+      "operatingsystemrelease": [
+        "7"
+      ]
+    },
+    {
+      "operatingsystem": "RedHat",
+      "operatingsystemrelease": [
+        "7"
+      ]
+    },
+    {
+      "operatingsystem": "Scientific",
+      "operatingsystemrelease": [
+        "7"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "name": "puppet",
+      "version_requirement": ">= 4.7.0 < 7.0.0"
+    }
+  ],
+  "pdk-version": "1.7.1",
+  "template-url": "file:///opt/puppetlabs/pdk/share/cache/pdk-templates.git",
+  "template-ref": "1.7.1-0-g810b982"
+}

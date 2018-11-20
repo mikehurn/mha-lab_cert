@@ -1,0 +1,121 @@
+#!/bin/sh
+#
+# ***  do not manually edit this file, all changes will be erased ***
+#
+# System managed by Puppet on <%= @puppetmastercname %>
+# Svn File: <%= @svnpath %><%= __FILE__.split('/modules/').last %>
+#
+# lab_cert helper script.
+#
+# This script is called by Puppet lab_cert::cert
+
+LOOPCOUNT=20
+SLEEP=2
+
+# Checking for the Certificate.
+# If the cert is missing try an copy the cert from the CA Store.
+echo "1.  looking for Cert <%= @crt_dir %>/${1}.crt"
+
+# This will fail if the cert on the host is missing or about to expire.
+/usr/bin/openssl x509 -in <%= @crt_dir %>/${1}.crt  -noout -checkend <%= @checkend_seconds %> 2>/dev/null
+if [[ $? -ne 0 ]]; then
+
+#if [[ ! -a <%= @crt_dir %>/${1}.crt ]]; then
+
+  /bin/logger "managecerts Mounting certs dir"
+  echo "2.  managecerts Mounting CA Store"
+  /usr/local/sbin/lab_cert_mount.sh 2>&1
+  if [[ $? -ne 0 ]]; then
+    exit 1
+  fi
+
+  # This will fail if the cert is missing or about to expire in the CA Store.
+  /usr/bin/openssl x509 -in <%=@cert_dir%>/Certificates/${1}.crt  -noout -checkend <%= @checkend_seconds %> 2>/dev/null
+  if [[ $? -eq 0 ]]; then
+
+#  if [[ -a <%=@cert_dir%>/certs/Certificates/${1}.crt ]]; then
+    /bin/logger "managecerts Copying Certificate from CA Store."
+    echo "3.  managecerts Copying Certificate from CA Store."
+    /bin/cp <%=@cert_dir%>/certs/Certificates/${1}.crt <%= @crt_dir %>/${1}.crt 2>&1
+    if [[ $? -ne 0 ]]; then
+      /bin/logger "managecerts Error: Copying Certificate from CA Store."
+      echo "4.  managecerts Error: Copying Certificate from CA Store."
+      /usr/local/sbin/lab_cert_umount.sh
+      exit 1
+    fi
+
+  else
+    /bin/logger "managecerts No Certificate to Copy in CA Store."
+    echo "5.  managecerts No Certificate to Copy in CA Store."
+    /bin/logger "managecerts Let's make our own Certificate. Starting with a CSR."
+    echo "6.  Let's make our own Certificate. Starting with a CSR."
+    /usr/bin/openssl req -config <%= @meta_dir %>/${1}.cnf -new -nodes -key <%= @key_dir %>/${1}.key -out <%= @meta_dir %>/${1}.csr 
+    csrGenError=$?
+    if [[ $csrGenError -ne 0 ]]; then
+      /bin/logger "managecerts Generate CSR Error."
+      echo "7. managecerts Generate CSR Error."
+      /usr/local/sbin/lab_cert_umount.sh
+      exit 1
+    fi
+
+    /bin/logger "managecerts Copying ${1}.csr to CA store."
+    echo "8.  managecerts Copying ${1}.csr to CA store."
+    /bin/cp /etc/pki/tls/certs/meta/${1}.csr <%=@cert_dir%>/certs/Requests/ 2>&1
+    cpret=$?
+    if [[ $cpret -ne 0 ]]; then
+      /bin/logger "managecerts Error: Copying CSR to CA Store."
+      echo "9.  managecerts Error: Copying CSR to CA Store.> ${cpret}<"
+      /usr/local/sbin/lab_cert_umount.sh
+      exit 1
+    fi
+    /bin/logger "managecerts End Copying ${1}.csr."
+    echo "10. managecerts End Copying ${1}.csr."
+
+#    echo "11. managecerts remounting CA Store"
+#    /usr/bin/mount -o remount /backups/certs/
+    echo "11. managecerts Sleeping for $SLEEP seconds."
+    sleep $SLEEP;
+
+    for ((I=0; $I < $LOOPCOUNT; I == 1))
+    do
+      if [[ -a <%=@cert_dir%>/certs/Requests/${1}.csr ]]; then
+        /bin/logger "managecerts CSR still in Requests and therefore has not been signed."
+        echo "12. managecerts CSR still in Requests and therefore has not been signed."
+        /bin/logger "managecerts Sleeping for $SLEEP seconds."
+        echo "13. managecerts Sleeping for $SLEEP seconds."
+        sleep $SLEEP;
+      else
+        /bin/logger "managecerts Cert has been signed, Looking for CRT"
+        echo "14. managecerts CSR has been signed, Looking for CRT"
+
+        /usr/bin/mount -o remount <%=@cert_dir%>/certs/
+
+        if [[ -a <%=@cert_dir%>/certs/Certificates/${1}.crt ]]; then
+          echo "15. managecerts Cert found copying CRT"
+          /bin/cp -f <%=@cert_dir%>/certs/Certificates/${1}.crt <%= @crt_dir %>/${1}.crt 2>&1
+          cpret=$?
+          if [[ $cpret -ne 0 ]]; then
+            /bin/logger "managecerts Error: Copying CRT from CA Store."
+            echo "16. managecerts Error: Copying CRT from CA Store. >${cpret}<"
+            /usr/local/sbin/lab_cert_umount.sh
+            exit 1
+          fi
+          /bin/chmod 644 <%= @crt_dir %>/${1}.crt 2>&1
+          /bin/logger "managecerts un-Mounting certs dir"
+          echo "17. managecerts un-Mounting CA Store"
+          /usr/local/sbin/lab_cert_umount.sh
+          exit 0
+        else
+          echo "18. CRT not fount sleeping for $SLEEP seconds."
+          sleep $SLEEP;
+        fi
+      fi
+    done
+
+  fi
+
+  /usr/local/sbin/lab_cert_umount.sh
+  exit 0
+
+fi
+

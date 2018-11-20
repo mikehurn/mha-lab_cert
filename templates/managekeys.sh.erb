@@ -1,0 +1,92 @@
+#!/bin/sh
+#
+# ***  do not manually edit this file, all changes will be erased ***
+#
+# System managed by Puppet on <%= @puppetmastercname %>
+# Svn File: <%= @svnpath %><%= __FILE__.split('/modules/').last %>
+#
+# SSC cert onr helper script.
+#
+# This script is called by Puppet lab_cert::cert
+
+echo "$1"
+
+# Checking for the KEY.
+# If the key is missing try an copy the key from the CA Store.
+# If that fails make our own key.
+echo "Checking for  <%= @key_dir %>/${1}.key"
+if [[ ! -a <%= @key_dir %>/${1}.key ]]; then
+
+  # Mount the CA store.
+  /bin/logger "managekeys Mounting certs dir"
+  echo "managekeys Mounting certs dir"
+  /usr/local/sbin/lab_cert_mount.sh 2>&1
+  if [[ $? -ne 0 ]]; then
+    exit 1
+  fi
+
+  # Do we have a key in the CA store?
+  if [[ -a <%=@cert_dir%>/certs/Keys/${1}.key ]]; then
+    /bin/logger "managekeys Copying Key from CA Store."
+    echo "managekeys Copying Key from CA Store."
+    /bin/cp <%=@cert_dir%>/certs/Keys/${1}.key <%= @key_dir %>/${1}.key 2>&1
+    if [[ $? -ne 0 ]]; then
+      /bin/logger "managekeys Error: Copying Key from CA Store."
+      echo "managekeys Error: Copying Key from CA Store."
+      /usr/local/sbin/lab_cert_umount.sh
+      exit 1
+    fi
+    /bin/chmod 600 <%= @key_dir %>/${1}.key 2>&1
+
+  else
+    /bin/logger "managekeys No Key in CA Store."
+    echo "managekeys No Key in CA Store."
+    /bin/logger "managekeys Let's make our own key."
+    echo "Let's make our own key."
+    RANDFILE=/root/.rnd
+    /bin/touch $RANDFILE
+    export RANDFILE
+    /usr/bin/openssl genrsa -out <%= @key_dir %>/${1}.key 2048
+    keyGenError=$?
+    if [[ $keyGenError -ne 0 ]]; then
+      /bin/logger "managekeys Generate Key Error."
+      echo "managekeys Generate Key Error."
+      /usr/local/sbin/lab_cert_umount.sh
+      exit 1
+    fi
+
+    /bin/logger "managekeys  Copy the key to the CA store."
+    echo "managekeys  Copy the key to the CA store."
+    /bin/cp <%= @key_dir %>/${1}.key 2>&1 <%=@cert_dir%>/certs/Keys/${1}.key 
+    if [[ $? -ne 0 ]]; then
+      /bin/logger "managekeys Error: Copying Key to CA Store."
+      echo "managekeys Error: Copying Key to CA Store."
+
+      # Do we have a key in the CA store?
+      if [[ -a <%=@cert_dir%>/certs/Keys/${1}.key ]]; then
+        /bin/logger "managekeys We now have a key in the CA store. Copying."
+        echo "managekeys We now have a key in the CA store. Copying."
+        /bin/cp <%=@cert_dir%>/certs/Keys/${1}.key <%= @key_dir %>/${1}.key 2>&1
+        if [[ $? -ne 0 ]]; then
+          /bin/logger "managekeys Error: Copying Key from CA Store."
+          echo "managekeys Error: Copying Key from CA Store."
+          /usr/local/sbin/lab_cert_umount.sh
+          exit 1
+        else
+          sleep 30
+          /usr/local/sbin/lab_cert_umount.sh
+          exit 0
+        fi
+      fi
+        /usr/local/sbin/lab_cert_umount.sh
+        exit 1
+    fi
+
+  fi
+
+  /usr/local/sbin/lab_cert_umount.sh
+  exit 0
+
+fi
+echo "We have key <%= @key_dir %>/${1}.key"
+

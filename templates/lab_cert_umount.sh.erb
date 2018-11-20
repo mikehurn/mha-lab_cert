@@ -1,0 +1,15 @@
+#!/bin/bash
+
+#
+# ***  do not manually edit this file, all changes will be erased ***
+#
+# System managed by Puppet on <%= @puppetmastercname %>
+# Svn File: <%= @svnpath %><%= __FILE__.split('/modules/').last %>
+
+mountpoint -q "<%=@cert_dir%>/certs"
+CERTDIRMOUNTED=$?
+
+if [ "$CERTDIRMOUNTED" -eq 0 ]; then
+  umount "<%=@cert_dir%>/certs"
+fi 
+

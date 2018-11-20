@@ -1,0 +1,26 @@
+#!/bin/bash
+
+#
+# ***  do not manually edit this file, all changes will be erased ***
+#
+# System managed by Puppet on <%= @puppetmastercname %>
+# Svn File: <%= @svnpath %><%= __FILE__.split('/modules/').last %>
+#
+
+mkdir -p "<%=@cert_dir%>/certs"
+
+mountpoint -q "<%=@cert_dir%>/certs"
+CERTDIRMOUNTED=$?
+
+if [ "$CERTDIRMOUNTED" -eq 1 ]; then
+    mount -t nfs "<%=@cert_share%>" "<%=@cert_dir%>/certs"
+    mountpoint -q "<%=@cert_dir%>/certs"
+    CERTDIRMOUNTED=$?
+fi
+
+if [[ $CERTDIRMOUNTED -ne 0 ]]
+then
+  echo "lab_cert Error - Failed to mount <%=@cert_dir%>/certs"
+  exit 1
+fi
+
