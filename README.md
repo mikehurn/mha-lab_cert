@@ -52,7 +52,7 @@ The lab_cert helper scripts will mount and umount $cert_share as needed.
 
 ### Beginning with lab_cert
 
-  # Note: the lab_cert::cert class will add our CN to the alt_names list
+Note: the lab_cert::cert class will add our CN to the alt_names list
 ```
   lab_cert::cert { 'www.example.com':
     alt_names => [ 'www2.example.com' ],
@@ -62,6 +62,13 @@ The lab_cert helper scripts will mount and umount $cert_share as needed.
     state     => 'CA',
   }
 ```
+To make a certificate for the host:
+```
+  lab_cert::cert { $::fqdn:
+    alt_names => [ $::hostname ],
+  }
+```
+
 
 ## Reference
 
